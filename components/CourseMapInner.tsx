@@ -18,48 +18,47 @@ function fixLeafletIcons() {
   });
 }
 
-const homeIcon = new L.DivIcon({
-  html: `<div style="
-    background:#1a3c2b;
-    color:#F5C842;
-    width:36px;height:36px;
-    border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    font-size:18px;
-    border:3px solid #F5C842;
-    box-shadow:0 2px 6px rgba(0,0,0,0.4);
-  ">🏨</div>`,
-  className: "",
-  iconSize: [36, 36],
-  iconAnchor: [18, 18],
-  popupAnchor: [0, -20],
-});
-
-function makeCourseIcon(roundNumber: number) {
-  return new L.DivIcon({
-    html: `<div style="
-      background:#F5C842;
-      color:#1a3c2b;
-      width:32px;height:32px;
-      border-radius:50%;
-      display:flex;align-items:center;justify-content:center;
-      font-size:14px;
-      font-weight:700;
-      font-family:sans-serif;
-      border:3px solid #1a3c2b;
-      box-shadow:0 2px 6px rgba(0,0,0,0.3);
-    ">${roundNumber}</div>`,
-    className: "",
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -20],
-  });
-}
-
 export default function CourseMapInner() {
   useEffect(() => {
     fixLeafletIcons();
   }, []);
+
+  const homeIcon = new L.DivIcon({
+    html: `<div style="
+      background:#1a3c2b;
+      color:#F5C842;
+      width:36px;height:36px;
+      border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-size:18px;
+      border:3px solid #F5C842;
+      box-shadow:0 2px 6px rgba(0,0,0,0.4);
+    ">🏨</div>`,
+    className: "",
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+    popupAnchor: [0, -20],
+  });
+
+  const makeCourseIcon = (roundNumber: number) =>
+    new L.DivIcon({
+      html: `<div style="
+        background:#F5C842;
+        color:#1a3c2b;
+        width:32px;height:32px;
+        border-radius:50%;
+        display:flex;align-items:center;justify-content:center;
+        font-size:14px;
+        font-weight:700;
+        font-family:sans-serif;
+        border:3px solid #1a3c2b;
+        box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      ">${roundNumber}</div>`,
+      className: "",
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+      popupAnchor: [0, -20],
+    });
 
   return (
     <MapContainer
