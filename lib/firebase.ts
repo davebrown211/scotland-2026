@@ -13,17 +13,18 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp;
 let db: Firestore;
 let storage: FirebaseStorage;
 
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
+if (isFirebaseConfigured) {
+  const app: FirebaseApp =
+    getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  db = getFirestore(app);
+  storage = getStorage(app);
 } else {
-  app = getApps()[0];
+  // Never used — all call sites check isFirebaseConfigured first
+  db = undefined as unknown as Firestore;
+  storage = undefined as unknown as FirebaseStorage;
 }
-
-db = getFirestore(app);
-storage = getStorage(app);
 
 export { db, storage };
