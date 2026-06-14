@@ -22,10 +22,13 @@ export interface PlayerTotals {
   position?: number;
 }
 
+export type GroupFormat = "bestBall" | "alternateShot" | "singles" | "scramble";
+
 export interface GroupResult {
   groupId: string;
   roundSlug: string;
-  format: "bestBall" | "alternateShot";
+  format: GroupFormat;
+  scoring?: "gross" | "net";
   team1: { team: string; playerIds: string[] };
   team2: { team: string; playerIds: string[] };
   team1Holes: HoleScore;
@@ -222,6 +225,44 @@ export function calcMatchPlayResult(
   return { holeResults, finalStatus: status, winner, team1Points, team2Points, statusLabel };
 }
 
+// Convert a side's gross hole scores to net, subtracting handicap strokes.
+// Uses the lowest-handicap player on the side as the stroke recipient
+// (for singles this is simply the one player).
+export function netHolesForSide(
+  holes: HoleScore,
+  playerIds: string[],
+  players: Player[],
+  holeInfos: HoleInfo[]
+): HoleScore {
+  const sidePlayers = playerIds
+    .map((id) => players.find((p) => p.id === id))
+    .filter((p): p is Player => !!p);
+  if (sidePlayers.length === 0) return holes;
+  const handicap = Math.min(...sidePlayers.map((p) => p.handicap));
+  const strokes = handicapStrokesPerHole(handicap, holeInfos);
+  const net: HoleScore = {};
+  for (let h = 1; h <= 18; h++) {
+    const g = holes[h];
+    net[h] = g != null ? g - strokes[h - 1] : (null as unknown as number);
+  }
+  return net;
+}
+
+// Compute a match result for a group, honouring its gross/net scoring basis.
+// Net nets each side before comparing; gross compares raw hole scores.
+export function calcGroupResult(
+  group: Pick<GroupResult, "scoring" | "team1" | "team2" | "team1Holes" | "team2Holes">,
+  players: Player[],
+  holeInfos: HoleInfo[]
+): MatchPlayResult {
+  if (group.scoring === "net") {
+    const t1 = netHolesForSide(group.team1Holes, group.team1.playerIds, players, holeInfos);
+    const t2 = netHolesForSide(group.team2Holes, group.team2.playerIds, players, holeInfos);
+    return calcMatchPlayResult(t1, t2);
+  }
+  return calcMatchPlayResult(group.team1Holes, group.team2Holes);
+}
+
 // Best ball: take the lower of the two scores per hole for a side.
 export function bestBallHoles(
   player1Holes: HoleScore,
@@ -257,6 +298,13 @@ export function buildTeamStandings(
   const byRound = new Map<string, { missouri: number; puertoRico: number }>();
 
   for (const g of groups) {
+    // Skip pairings that haven't been played yet — an unscored match would
+    // otherwise register as an all-square halve and inflate the standings.
+    const played =
+      Object.values(g.team1Holes ?? {}).some((v) => v != null) ||
+      Object.values(g.team2Holes ?? {}).some((v) => v != null);
+    if (!played) continue;
+
     if (!byRound.has(g.roundSlug)) {
       byRound.set(g.roundSlug, { missouri: 0, puertoRico: 0 });
     }

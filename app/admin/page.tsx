@@ -5,9 +5,10 @@ import { useSearchParams } from "next/navigation";
 import PasswordGate from "@/components/admin/PasswordGate";
 import IndividualScoreEntry from "@/components/admin/IndividualScoreEntry";
 import GroupScoreEntry from "@/components/admin/GroupScoreEntry";
+import PairingsEditor from "@/components/admin/PairingsEditor";
 import GalleryUpload from "@/components/admin/GalleryUpload";
 
-type Tab = "individual" | "groups" | "gallery";
+type Tab = "pairings" | "individual" | "groups" | "gallery";
 
 function AdminPageInner() {
   const searchParams = useSearchParams();
@@ -30,6 +31,7 @@ function AdminPageInner() {
   }
 
   const tabs: { id: Tab; label: string; emoji: string }[] = [
+    { id: "pairings", label: "Pairings", emoji: "🗂️" },
     { id: "individual", label: "Individual Scores", emoji: "🏌️" },
     { id: "groups", label: "Match Play", emoji: "⚔️" },
     { id: "gallery", label: "Upload Photos", emoji: "📸" },
@@ -74,6 +76,14 @@ function AdminPageInner() {
 
       {/* Tab content */}
       <div className="bg-white rounded-xl shadow-md p-6">
+        {activeTab === "pairings" && (
+          <>
+            <h2 className="font-serif text-xl text-[#1a3c2b] font-semibold mb-4">
+              Pairings & Matchups
+            </h2>
+            <PairingsEditor />
+          </>
+        )}
         {activeTab === "individual" && (
           <>
             <h2 className="font-serif text-xl text-[#1a3c2b] font-semibold mb-4">

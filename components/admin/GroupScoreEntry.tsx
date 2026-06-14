@@ -3,15 +3,23 @@
 import { useState, useEffect, useCallback } from "react";
 import { PLAYERS, TEAM_NAMES } from "@/data/players";
 import { COURSES } from "@/data/courses";
-import { HoleScore, calcMatchPlayResult } from "@/lib/scoring";
+import { HoleScore, calcGroupResult, GroupFormat } from "@/lib/scoring";
 import { GroupResult } from "@/lib/scoring";
 
-type Format = "bestBall" | "alternateShot";
+type Scoring = "gross" | "net";
+
+const FORMAT_LABEL: Record<GroupFormat, string> = {
+  singles: "Singles",
+  bestBall: "Best Ball",
+  scramble: "Scramble",
+  alternateShot: "Alternate Shot",
+};
 
 interface GroupFormState {
   groupId: string;
   roundSlug: string;
-  format: Format;
+  format: GroupFormat;
+  scoring: Scoring;
   team1PlayerIds: string[];
   team2PlayerIds: string[];
   team1Team: string;
@@ -38,6 +46,7 @@ export default function GroupScoreEntry() {
         groupId: g.groupId,
         roundSlug: g.roundSlug,
         format: g.format,
+        scoring: g.scoring === "net" ? "net" : "gross",
         team1PlayerIds: g.team1.playerIds,
         team2PlayerIds: g.team2.playerIds,
         team1Team: g.team1.team,
@@ -57,6 +66,7 @@ export default function GroupScoreEntry() {
       groupId: `${roundSlug}_${Date.now()}`,
       roundSlug,
       format: "bestBall",
+      scoring: "gross",
       team1PlayerIds: [],
       team2PlayerIds: [],
       team1Team: "missouri",
@@ -89,6 +99,22 @@ export default function GroupScoreEntry() {
     });
   };
 
+  const togglePlayer = (idx: number, side: "team1" | "team2", playerId: string) => {
+    const g = groups[idx];
+    const key = side === "team1" ? "team1PlayerIds" : "team2PlayerIds";
+    const current = g[key];
+    const max = g.format === "singles" ? 1 : 2;
+    let next: string[];
+    if (current.includes(playerId)) {
+      next = current.filter((id) => id !== playerId);
+    } else if (max === 1) {
+      next = [playerId];
+    } else {
+      next = [...current, playerId];
+    }
+    updateGroup(idx, { [key]: next });
+  };
+
   const handleSave = async (idx: number) => {
     setSaving(true);
     setMessage(null);
@@ -101,6 +127,7 @@ export default function GroupScoreEntry() {
           groupId: g.groupId,
           roundSlug: g.roundSlug,
           format: g.format,
+          scoring: g.scoring,
           team1: { team: g.team1Team, playerIds: g.team1PlayerIds },
           team2: { team: g.team2Team, playerIds: g.team2PlayerIds },
           team1Holes: g.team1Holes,
@@ -181,7 +208,17 @@ export default function GroupScoreEntry() {
           </h3>
           {groups.map((g, idx) => {
             const isActive = activeGroupIdx === idx;
-            const matchResult = calcMatchPlayResult(g.team1Holes, g.team2Holes);
+            const matchResult = calcGroupResult(
+              {
+                scoring: g.scoring,
+                team1: { team: g.team1Team, playerIds: g.team1PlayerIds },
+                team2: { team: g.team2Team, playerIds: g.team2PlayerIds },
+                team1Holes: g.team1Holes,
+                team2Holes: g.team2Holes,
+              },
+              PLAYERS,
+              course.holes
+            );
             const t1 = getPlayersForTeam(g.team1Team as "missouri" | "puertoRico");
             const t2 = getPlayersForTeam(g.team2Team as "missouri" | "puertoRico");
 
@@ -199,7 +236,8 @@ export default function GroupScoreEntry() {
                       {TEAM_NAMES[g.team2Team as keyof typeof TEAM_NAMES] ?? g.team2Team}
                     </span>
                     <span className="ml-2 text-xs text-gray-500">
-                      ({g.format === "bestBall" ? "Best Ball" : "Alt Shot"})
+                      ({FORMAT_LABEL[g.format]}
+                      {" · "}{g.scoring === "net" ? "Net" : "Gross"})
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -223,21 +261,47 @@ export default function GroupScoreEntry() {
                 {/* Expanded editor */}
                 {isActive && (
                   <div className="px-4 pb-4 pt-3 space-y-4">
-                    {/* Format */}
-                    <div className="flex gap-3">
-                      {(["bestBall", "alternateShot"] as Format[]).map((f) => (
+                    {/* Format + scoring */}
+                    <div className="flex flex-wrap gap-3">
+                      {(["singles", "bestBall", "scramble", "alternateShot"] as GroupFormat[]).map((f) => (
                         <button
                           key={f}
-                          onClick={() => updateGroup(idx, { format: f })}
+                          onClick={() => {
+                            // Singles allows only one player per side — trim extras.
+                            if (f === "singles") {
+                              updateGroup(idx, {
+                                format: f,
+                                team1PlayerIds: g.team1PlayerIds.slice(0, 1),
+                                team2PlayerIds: g.team2PlayerIds.slice(0, 1),
+                              });
+                            } else {
+                              updateGroup(idx, { format: f });
+                            }
+                          }}
                           className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                             g.format === f
                               ? "bg-[#1a3c2b] text-white"
                               : "border border-gray-300 hover:bg-gray-50"
                           }`}
                         >
-                          {f === "bestBall" ? "Best Ball" : "Alternate Shot"}
+                          {FORMAT_LABEL[f]}
                         </button>
                       ))}
+                      <div className="flex gap-1 ml-auto">
+                        {(["gross", "net"] as Scoring[]).map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => updateGroup(idx, { scoring: s })}
+                            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                              g.scoring === s
+                                ? "bg-[#F5C842] text-[#1a3c2b]"
+                                : "border border-gray-300 hover:bg-gray-50"
+                            }`}
+                          >
+                            {s === "gross" ? "Gross" : "Net"}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     {/* Player selection */}
@@ -249,15 +313,9 @@ export default function GroupScoreEntry() {
                         {t1.map((p) => (
                           <label key={p.id} className="flex items-center gap-2 text-sm mb-1">
                             <input
-                              type="checkbox"
+                              type={g.format === "singles" ? "radio" : "checkbox"}
                               checked={g.team1PlayerIds.includes(p.id)}
-                              onChange={(e) =>
-                                updateGroup(idx, {
-                                  team1PlayerIds: e.target.checked
-                                    ? [...g.team1PlayerIds, p.id]
-                                    : g.team1PlayerIds.filter((id) => id !== p.id),
-                                })
-                              }
+                              onChange={() => togglePlayer(idx, "team1", p.id)}
                             />
                             {p.name} (+{p.handicap})
                           </label>
@@ -270,15 +328,9 @@ export default function GroupScoreEntry() {
                         {t2.map((p) => (
                           <label key={p.id} className="flex items-center gap-2 text-sm mb-1">
                             <input
-                              type="checkbox"
+                              type={g.format === "singles" ? "radio" : "checkbox"}
                               checked={g.team2PlayerIds.includes(p.id)}
-                              onChange={(e) =>
-                                updateGroup(idx, {
-                                  team2PlayerIds: e.target.checked
-                                    ? [...g.team2PlayerIds, p.id]
-                                    : g.team2PlayerIds.filter((id) => id !== p.id),
-                                })
-                              }
+                              onChange={() => togglePlayer(idx, "team2", p.id)}
                             />
                             {p.name} (+{p.handicap})
                           </label>
@@ -313,7 +365,7 @@ export default function GroupScoreEntry() {
                                   {teamLabel}
                                 </td>
                                 {course.holes.map((h) => {
-                                  const matchHole = calcMatchPlayResult(g.team1Holes, g.team2Holes).holeResults[h.hole - 1];
+                                  const matchHole = matchResult.holeResults[h.hole - 1];
                                   const won = matchHole?.winner === side && matchHole.team1Score != null && matchHole.team2Score != null;
                                   return (
                                     <td key={h.hole} className={`px-0.5 py-1 ${won ? "bg-green-100" : ""}`}>
@@ -335,7 +387,7 @@ export default function GroupScoreEntry() {
                           {/* Running status row */}
                           <tr className="border-t border-gray-200">
                             <td className="px-2 py-1 text-left text-gray-500 font-medium text-[10px]">STATUS</td>
-                            {calcMatchPlayResult(g.team1Holes, g.team2Holes).holeResults.map((h) => (
+                            {matchResult.holeResults.map((h) => (
                               <td key={h.hole} className="py-1 text-[10px] font-semibold">
                                 {h.team1Score != null && h.team2Score != null ? (
                                   h.runningStatus === 0 ? (

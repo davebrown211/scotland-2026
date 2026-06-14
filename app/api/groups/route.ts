@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isValidSessionToken } from "@/lib/auth";
 import { saveGroup, getGroups, deleteGroup } from "@/lib/firestore";
-import { calcMatchPlayResult } from "@/lib/scoring";
+import { calcGroupResult } from "@/lib/scoring";
 import { GroupResult } from "@/lib/scoring";
+import { PLAYERS } from "@/data/players";
+import { getCourse } from "@/data/courses";
 
 export async function GET(req: NextRequest) {
   const roundSlug = req.nextUrl.searchParams.get("round") ?? undefined;
@@ -18,13 +20,20 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const { groupId, roundSlug, format, team1, team2, team1Holes, team2Holes } = body;
+  const scoring: "gross" | "net" = body.scoring === "net" ? "net" : "gross";
 
-  const matchResult = calcMatchPlayResult(team1Holes, team2Holes);
+  const holeInfos = getCourse(roundSlug)?.holes ?? [];
+  const matchResult = calcGroupResult(
+    { scoring, team1, team2, team1Holes, team2Holes },
+    PLAYERS,
+    holeInfos
+  );
 
   const group: GroupResult = {
     groupId,
     roundSlug,
     format,
+    scoring,
     team1,
     team2,
     team1Holes,
