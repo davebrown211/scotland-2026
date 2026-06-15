@@ -18,7 +18,7 @@ export const PLAYERS: Player[] = [
   // Team Puerto Rico
   { id: "david-brown", name: "David Brown", handicap: 8, team: "puertoRico", captain: true },
   { id: "angel-perez", name: "Angel Perez", handicap: 8, team: "puertoRico" },
-  { id: "angel-perez-jr", name: "Angel Perez Jr.", handicap: 12, team: "puertoRico" },
+  { id: "angel-perez-jr", name: "Angel Jr. Perez", handicap: 12, team: "puertoRico" },
   { id: "egidio-montanile", name: "Egidio Montanile", handicap: 12, team: "puertoRico" },
   { id: "rick-brown", name: "Rick Brown", handicap: 16, team: "puertoRico" },
   // Rover
@@ -46,4 +46,11 @@ export const TEAM_FLAGS: Record<Team, string> = {
 
 export function getPlayer(id: string): Player | undefined {
   return PLAYERS.find((p) => p.id === id);
+}
+
+// Given (first) name = everything except the final surname token, so
+// "Angel Jr. Perez" → "Angel Jr." and "Don Steele" → "Don".
+export function givenName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return parts.length <= 1 ? name : parts.slice(0, -1).join(" ");
 }

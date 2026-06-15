@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { PLAYERS, getPlayer } from "@/data/players";
+import { PLAYERS, getPlayer, givenName } from "@/data/players";
 import { COURSES } from "@/data/courses";
 import { GroupResult, GroupFormat, HoleScore } from "@/lib/scoring";
 import { SCHEDULE_PRESETS } from "@/data/schedule";
@@ -41,7 +41,8 @@ function teamForSide(playerIds: string[], fallback: "missouri" | "puertoRico"): 
 }
 
 function firstName(id: string): string {
-  return getPlayer(id)?.name.split(" ")[0] ?? id;
+  const name = getPlayer(id)?.name;
+  return name ? givenName(name) : id;
 }
 
 export default function PairingsEditor() {
@@ -398,7 +399,7 @@ export default function PairingsEditor() {
                           }`}
                           title={isRover ? "Charlie — rover (rotates teams)" : undefined}
                         >
-                          {p.name.split(" ")[0]}
+                          {givenName(p.name)}
                           {isRover ? " ✦" : ""}
                         </button>
                       );

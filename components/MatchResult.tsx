@@ -1,6 +1,6 @@
 import { GroupResult } from "@/lib/scoring";
 import { calcGroupResult } from "@/lib/scoring";
-import { PLAYERS, TEAM_NAMES } from "@/data/players";
+import { PLAYERS, TEAM_NAMES, givenName } from "@/data/players";
 import { getCourse } from "@/data/courses";
 
 interface MatchResultProps {
@@ -102,7 +102,7 @@ export default function MatchResult({ group, expanded = false }: MatchResultProp
             <tbody>
               <tr>
                 <td className="px-1 py-1 text-left text-blue-700 font-medium">
-                  {t1Names[0]?.split(" ")[0]}
+                  {t1Names[0] ? givenName(t1Names[0]) : ""}
                 </td>
                 {matchResult.holeResults.map((h) => (
                   <td key={h.hole} className={`px-1 py-1 ${h.winner === "team1" ? "bg-blue-50 font-bold text-blue-700" : ""}`}>
@@ -112,7 +112,7 @@ export default function MatchResult({ group, expanded = false }: MatchResultProp
               </tr>
               <tr>
                 <td className="px-1 py-1 text-left text-red-700 font-medium">
-                  {t2Names[0]?.split(" ")[0]}
+                  {t2Names[0] ? givenName(t2Names[0]) : ""}
                 </td>
                 {matchResult.holeResults.map((h) => (
                   <td key={h.hole} className={`px-1 py-1 ${h.winner === "team2" ? "bg-red-50 font-bold text-red-700" : ""}`}>
